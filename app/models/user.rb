@@ -20,6 +20,14 @@ class User < ApplicationRecord
   has_secure_password
   validates :password, length: {minimum: Settings.user.password.min_lenght}
 
+  has_many :active_relationships, class_name: Relationship.name,
+    foreign_key: :follower_id, dependent: :destroy
+  has_many :passive_relationships, class_name: Relationship.name,
+    foreign_key: :following_id, dependent: :destroy
+  has_many :followers, through: :passive_relationships, source: :follower
+  has_many :followings, through: :active_relationships, source: :following 
+  has_many :notifications, foreign_key: :recipient_id
+
   def self.digest string
     min_cost = BCrypt::Engine::MIN_COST
     engine_cost = BCrypt::Engine.cost
@@ -68,9 +76,21 @@ class User < ApplicationRecord
   def bookmark? post_id
     user_bookmarks.include? post_id
   end
+  
+  def follow other_user
+    followings << other_user
+  end
+
+  def unfollow other_user
+    followings.delete other_user
+  end
+
+  def following? other_user
+    followings.include? other_user
+  end
 
   private
-    def downcase_email
-      email.downcase!
-    end
+  def downcase_email
+    email.downcase!
+  end
 end
